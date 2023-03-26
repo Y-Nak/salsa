@@ -61,6 +61,12 @@ pub(crate) struct Options<A: AllowedOptions> {
     /// If this is `Some`, the value is the `<ident>`.
     pub constructor_name: Option<syn::Ident>,
 
+    /// The `constructor_vis = <vis>` option lets the user specify the visibility of
+    /// the constructor of a salsa struct.
+    ///
+    /// If this is `Some`, the value is the `<vis>`.
+    pub constructor_vis: Option<syn::Visibility>,
+
     /// Remember the `A` parameter, which plays no role after parsing.
     phantom: PhantomData<A>,
 }
@@ -76,6 +82,7 @@ impl<A: AllowedOptions> Default for Options<A> {
             recovery_fn: Default::default(),
             data: Default::default(),
             constructor_name: Default::default(),
+            constructor_vis: Default::default(),
             phantom: Default::default(),
             lru: Default::default(),
             singleton: Default::default(),
@@ -95,6 +102,7 @@ pub(crate) trait AllowedOptions {
     const RECOVERY_FN: bool;
     const LRU: bool;
     const CONSTRUCTOR_NAME: bool;
+    const CONSTRUCTOR_VISIBILITY: bool;
 }
 
 type Equals = syn::Token![=];
@@ -259,6 +267,22 @@ impl<A: AllowedOptions> syn::parse::Parse for Options<A> {
                     return Err(syn::Error::new(
                         ident.span(),
                         "`constructor` option not allowed here",
+                    ));
+                }
+            } else if ident == "constructor_vis" {
+                if A::CONSTRUCTOR_VISIBILITY {
+                    let _eq = Equals::parse(input)?;
+                    let vis = syn::Visibility::parse(input)?;
+                    if let Some(old) = std::mem::replace(&mut options.constructor_vis, Some(vis)) {
+                        return Err(syn::Error::new(
+                            old.span(),
+                            "option `constructor_vis` provided twice",
+                        ));
+                    }
+                } else {
+                    return Err(syn::Error::new(
+                        ident.span(),
+                        "`constructor_vis` option not allowed here",
                     ));
                 }
             } else {

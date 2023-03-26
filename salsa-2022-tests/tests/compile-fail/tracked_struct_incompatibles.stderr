@@ -1,71 +1,71 @@
 error: `return_ref` option not allowed here
- --> tests/compile-fail/tracked_struct_incompatibles.rs:7:29
-  |
-7 | #[salsa::tracked(jar = Jar, return_ref)]
-  |                             ^^^^^^^^^^
+  --> tests/compile-fail/tracked_struct_incompatibles.rs:13:29
+   |
+13 | #[salsa::tracked(jar = Jar, return_ref)]
+   |                             ^^^^^^^^^^
 
 error: `specify` option not allowed here
-  --> tests/compile-fail/tracked_struct_incompatibles.rs:12:29
+  --> tests/compile-fail/tracked_struct_incompatibles.rs:18:29
    |
-12 | #[salsa::tracked(jar = Jar, specify)]
+18 | #[salsa::tracked(jar = Jar, specify)]
    |                             ^^^^^^^
 
 error: `no_eq` option not allowed here
-  --> tests/compile-fail/tracked_struct_incompatibles.rs:17:29
+  --> tests/compile-fail/tracked_struct_incompatibles.rs:23:29
    |
-17 | #[salsa::tracked(jar = Jar, no_eq)]
+23 | #[salsa::tracked(jar = Jar, no_eq)]
    |                             ^^^^^
 
 error: `db` option not allowed here
-  --> tests/compile-fail/tracked_struct_incompatibles.rs:22:29
+  --> tests/compile-fail/tracked_struct_incompatibles.rs:28:29
    |
-22 | #[salsa::tracked(jar = Jar, db = Db)]
+28 | #[salsa::tracked(jar = Jar, db = Db)]
    |                             ^^
 
 error: unrecognized option `recover_fn`
-  --> tests/compile-fail/tracked_struct_incompatibles.rs:27:29
+  --> tests/compile-fail/tracked_struct_incompatibles.rs:33:29
    |
-27 | #[salsa::tracked(jar = Jar, recover_fn = recover)]
+33 | #[salsa::tracked(jar = Jar, recover_fn = recover)]
    |                             ^^^^^^^^^^
 
 error: `lru` option not allowed here
-  --> tests/compile-fail/tracked_struct_incompatibles.rs:32:29
+  --> tests/compile-fail/tracked_struct_incompatibles.rs:38:29
    |
-32 | #[salsa::tracked(jar = Jar, lru =12)]
+38 | #[salsa::tracked(jar = Jar, lru =12)]
    |                             ^^^
 
 error[E0412]: cannot find type `TrackedWithRetRef` in this scope
- --> tests/compile-fail/tracked_struct_incompatibles.rs:2:12
+ --> tests/compile-fail/tracked_struct_incompatibles.rs:3:5
   |
-2 | struct Jar(TrackedWithRetRef, TrackedSructWithSpecify, TrackedStructWithNoEq, TrackedStructWithDb, TrackedStructWithRecover, TrackedStruc...
-  |            ^^^^^^^^^^^^^^^^^ not found in this scope
+3 |     TrackedWithRetRef,
+  |     ^^^^^^^^^^^^^^^^^ not found in this scope
 
-error[E0412]: cannot find type `TrackedSructWithSpecify` in this scope
- --> tests/compile-fail/tracked_struct_incompatibles.rs:2:31
+error[E0412]: cannot find type `TrackedStructWithSpecify` in this scope
+ --> tests/compile-fail/tracked_struct_incompatibles.rs:4:5
   |
-2 | struct Jar(TrackedWithRetRef, TrackedSructWithSpecify, TrackedStructWithNoEq, TrackedStructWithDb, TrackedStructWithRecover, TrackedStruc...
-  |                               ^^^^^^^^^^^^^^^^^^^^^^^ not found in this scope
+4 |     TrackedStructWithSpecify,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^ not found in this scope
 
 error[E0412]: cannot find type `TrackedStructWithNoEq` in this scope
- --> tests/compile-fail/tracked_struct_incompatibles.rs:2:56
+ --> tests/compile-fail/tracked_struct_incompatibles.rs:5:5
   |
-2 | struct Jar(TrackedWithRetRef, TrackedSructWithSpecify, TrackedStructWithNoEq, TrackedStructWithDb, TrackedStructWithRecover, TrackedStruc...
-  |                                                        ^^^^^^^^^^^^^^^^^^^^^ not found in this scope
+5 |     TrackedStructWithNoEq,
+  |     ^^^^^^^^^^^^^^^^^^^^^ not found in this scope
 
 error[E0412]: cannot find type `TrackedStructWithDb` in this scope
- --> tests/compile-fail/tracked_struct_incompatibles.rs:2:79
+ --> tests/compile-fail/tracked_struct_incompatibles.rs:6:5
   |
-2 | struct Jar(TrackedWithRetRef, TrackedSructWithSpecify, TrackedStructWithNoEq, TrackedStructWithDb, TrackedStructWithRecover, TrackedStruc...
-  |                                                                               ^^^^^^^^^^^^^^^^^^^ not found in this scope
+6 |     TrackedStructWithDb,
+  |     ^^^^^^^^^^^^^^^^^^^ not found in this scope
 
 error[E0412]: cannot find type `TrackedStructWithRecover` in this scope
- --> tests/compile-fail/tracked_struct_incompatibles.rs:2:100
+ --> tests/compile-fail/tracked_struct_incompatibles.rs:7:5
   |
-2 | ...rackedStructWithNoEq, TrackedStructWithDb, TrackedStructWithRecover, TrackedStructWithLru);
-  |                                               ^^^^^^^^^^^^^^^^^^^^^^^^ not found in this scope
+7 |     TrackedStructWithRecover,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^ not found in this scope
 
 error[E0412]: cannot find type `TrackedStructWithLru` in this scope
- --> tests/compile-fail/tracked_struct_incompatibles.rs:2:126
+ --> tests/compile-fail/tracked_struct_incompatibles.rs:8:5
   |
-2 | ...ackedStructWithDb, TrackedStructWithRecover, TrackedStructWithLru);
-  |                                                 ^^^^^^^^^^^^^^^^^^^^ not found in this scope
+8 |     TrackedStructWithLru,
+  |     ^^^^^^^^^^^^^^^^^^^^ not found in this scope

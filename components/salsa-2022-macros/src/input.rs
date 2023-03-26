@@ -47,6 +47,8 @@ impl crate::options::AllowedOptions for InputStruct {
     const LRU: bool = false;
 
     const CONSTRUCTOR_NAME: bool = true;
+
+    const CONSTRUCTOR_VISIBILITY: bool = true;
 }
 
 impl InputStruct {
@@ -124,7 +126,8 @@ impl InputStruct {
         .collect();
 
         let constructor_name = self.constructor_name();
-        let singleton = self.0.is_isingleton();
+        let constructor_vis = self.constructor_vis();
+        let singleton = self.0.is_singleton();
 
         let constructor: syn::ImplItemMethod = if singleton {
             parse_quote! {
@@ -133,7 +136,7 @@ impl InputStruct {
                 /// # Panics
                 ///
                 /// If called when an instance already exists
-                pub fn #constructor_name(__db: &#db_dyn_ty, #(#field_names: #field_tys,)*) -> Self
+                #constructor_vis fn #constructor_name(__db: &#db_dyn_ty, #(#field_names: #field_tys,)*) -> Self
                 {
                     let (__jar, __runtime) = <_ as salsa::storage::HasJar<#jar_ty>>::jar(__db);
                     let __ingredients = <#jar_ty as salsa::storage::HasIngredientsFor< #ident >>::ingredient(__jar);
@@ -146,7 +149,7 @@ impl InputStruct {
             }
         } else {
             parse_quote! {
-                pub fn #constructor_name(__db: &#db_dyn_ty, #(#field_names: #field_tys,)*) -> Self
+                #constructor_vis fn #constructor_name(__db: &#db_dyn_ty, #(#field_names: #field_tys,)*) -> Self
                 {
                     let (__jar, __runtime) = <_ as salsa::storage::HasJar<#jar_ty>>::jar(__db);
                     let __ingredients = <#jar_ty as salsa::storage::HasIngredientsFor< #ident >>::ingredient(__jar);

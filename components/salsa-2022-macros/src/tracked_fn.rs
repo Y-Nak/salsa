@@ -78,6 +78,8 @@ impl crate::options::AllowedOptions for TrackedFn {
     const LRU: bool = true;
 
     const CONSTRUCTOR_NAME: bool = false;
+
+    const CONSTRUCTOR_VISIBILITY: bool = false;
 }
 
 type ImplArgs = Options<TrackedImpl>;
@@ -178,6 +180,8 @@ impl crate::options::AllowedOptions for TrackedImpl {
     const LRU: bool = false;
 
     const CONSTRUCTOR_NAME: bool = false;
+
+    const CONSTRUCTOR_VISIBILITY: bool = false;
 
     const SINGLETON: bool = false;
 }

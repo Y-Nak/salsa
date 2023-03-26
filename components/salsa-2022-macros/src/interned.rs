@@ -51,6 +51,8 @@ impl crate::options::AllowedOptions for InternedStruct {
     const LRU: bool = false;
 
     const CONSTRUCTOR_NAME: bool = true;
+
+    const CONSTRUCTOR_VISIBILITY: bool = true;
 }
 
 impl InternedStruct {
@@ -83,7 +85,6 @@ impl InternedStruct {
     /// If this is an interned struct, then generate methods to access each field,
     /// as well as a `new` method.
     fn inherent_impl_for_named_fields(&self) -> syn::ItemImpl {
-        let vis = self.visibility();
         let id_ident = self.id_ident();
         let db_dyn_ty = self.db_dyn_ty();
         let jar_ty = self.jar_ty();
@@ -118,9 +119,10 @@ impl InternedStruct {
         let field_names = self.all_field_names();
         let field_tys = self.all_field_tys();
         let data_ident = self.data_ident();
+        let constructor_vis = self.constructor_vis();
         let constructor_name = self.constructor_name();
         let new_method: syn::ImplItemMethod = parse_quote! {
-            #vis fn #constructor_name(
+            #constructor_vis fn #constructor_name(
                 db: &#db_dyn_ty,
                 #(#field_names: #field_tys,)*
             ) -> Self {

@@ -139,7 +139,7 @@ impl<A: AllowedOptions> SalsaStruct<A> {
     }
 
     /// checks if the "singleton" flag was set
-    pub(crate) fn is_isingleton(&self) -> bool {
+    pub(crate) fn is_singleton(&self) -> bool {
         self.args.singleton.is_some()
     }
 
@@ -215,6 +215,13 @@ impl<A: AllowedOptions> SalsaStruct<A> {
             Some(name) => name,
             None => Ident::new("new", Span::call_site()),
         }
+    }
+
+    pub(crate) fn constructor_vis(&self) -> &syn::Visibility {
+        self.args
+            .constructor_vis
+            .as_ref()
+            .unwrap_or_else(|| self.visibility())
     }
 
     /// For each of the fields passed as an argument,
