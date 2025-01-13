@@ -2,7 +2,8 @@ use proc_macro2::{Literal, Span, TokenStream};
 
 use crate::salsa_struct::{SalsaField, SalsaStruct, TheStructKind};
 
-/// For an tracked struct `Foo` with fields `f1: T1, ..., fN: TN`, we generate...
+/// For an tracked struct `Foo` with fields `f1: T1, ..., fN: TN`, we
+/// generate...
 ///
 /// * the "id struct" `struct Foo(salsa::Id)`
 /// * the tracked ingredient, which maps the id fields to the `Id`
@@ -57,6 +58,7 @@ impl TrackedStruct {
 
         let config_struct = self.config_struct();
         let the_struct = self.the_struct(&config_struct.ident)?;
+        let the_struct_impl = self.the_struct_impl();
         let config_impl = self.config_impl(&config_struct);
         let inherent_impl = self.tracked_inherent_impl();
         let ingredients_for_impl = self.tracked_struct_ingredients(&config_struct);
@@ -82,6 +84,7 @@ impl TrackedStruct {
 
             #[allow(clippy::all, dead_code, warnings)]
             const _: () = {
+                #the_struct_impl
                 #config_impl
                 #inherent_impl
                 #ingredients_for_impl
@@ -108,7 +111,8 @@ impl TrackedStruct {
 
         // Create the function body that will update the revisions for each field.
         // If a field is a "backdate field" (the default), then we first check if
-        // the new value is `==` to the old value. If so, we leave the revision unchanged.
+        // the new value is `==` to the old value. If so, we leave the revision
+        // unchanged.
         let old_fields = syn::Ident::new("old_fields_", Span::call_site());
         let new_fields = syn::Ident::new("new_fields_", Span::call_site());
         let revisions = syn::Ident::new("revisions_", Span::call_site());
@@ -252,8 +256,9 @@ impl TrackedStruct {
 
     /// Generate the `IngredientsFor` impl for this tracked struct.
     ///
-    /// The tracked struct's ingredients include both the main tracked struct ingredient along with a
-    /// function ingredient for each of the value fields.
+    /// The tracked struct's ingredients include both the main tracked struct
+    /// ingredient along with a function ingredient for each of the value
+    /// fields.
     fn tracked_struct_ingredients(&self, config_struct: &syn::ItemStruct) -> syn::ItemImpl {
         use crate::literal;
         let (ident, _, impl_generics, type_generics, where_clause) = self.the_ident_and_generics();
@@ -395,23 +400,25 @@ impl TrackedStruct {
         Literal::usize_unsuffixed(0)
     }
 
-    /// The index of the tracked field ingredients array in the ingredient tuple.
+    /// The index of the tracked field ingredients array in the ingredient
+    /// tuple.
     fn tracked_field_ingredients_index(&self) -> Literal {
         Literal::usize_unsuffixed(1)
     }
 
-    /// For this struct, we create a tuple that contains the function ingredients
-    /// for each field and the tracked-struct ingredient. These are the indices
-    /// of the function ingredients within that tuple.
+    /// For this struct, we create a tuple that contains the function
+    /// ingredients for each field and the tracked-struct ingredient. These
+    /// are the indices of the function ingredients within that tuple.
     fn all_field_indices(&self) -> Vec<Literal> {
         (0..self.all_fields().count())
             .map(Literal::usize_unsuffixed)
             .collect()
     }
 
-    /// For this struct, we create a tuple that contains the function ingredients
-    /// for each "other" field and the tracked-struct ingredient. These are the indices
-    /// of the function ingredients within that tuple.
+    /// For this struct, we create a tuple that contains the function
+    /// ingredients for each "other" field and the tracked-struct
+    /// ingredient. These are the indices of the function ingredients within
+    /// that tuple.
     fn all_field_count(&self) -> Literal {
         Literal::usize_unsuffixed(self.all_fields().count())
     }

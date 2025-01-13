@@ -1,5 +1,6 @@
-use crate::salsa_struct::{SalsaStruct, TheStructKind};
 use proc_macro2::TokenStream;
+
+use crate::salsa_struct::{SalsaStruct, TheStructKind};
 
 // #[salsa::interned(jar = Jar0, data = TyData0)]
 // #[derive(Eq, PartialEq, Hash, Debug, Clone)]
@@ -58,6 +59,7 @@ impl InternedStruct {
         self.validate_interned()?;
         let config_struct = self.config_struct();
         let the_struct = self.the_struct(&config_struct.ident)?;
+        let the_struct_impl = self.the_struct_impl();
         let data_struct = self.data_struct();
         let configuration_impl = self.configuration_impl(&data_struct.ident, &config_struct.ident);
         let ingredients_for_impl = self.ingredients_for_impl(&config_struct.ident);
@@ -80,6 +82,7 @@ impl InternedStruct {
 
                 #[allow(warnings, clippy::all)]
                 const _: () = {
+                    #the_struct_impl
                     #configuration_impl
                     #ingredients_for_impl
                     #as_id_impl
@@ -102,8 +105,9 @@ impl InternedStruct {
         Ok(())
     }
 
-    /// The name of the "data" struct (this comes from the `data = Foo` option or,
-    /// if that is not provided, by concatenating `Data` to the name of the struct).
+    /// The name of the "data" struct (this comes from the `data = Foo` option
+    /// or, if that is not provided, by concatenating `Data` to the name of
+    /// the struct).
     fn data_ident(&self) -> syn::Ident {
         match &self.args().data {
             Some(d) => d.clone(),
@@ -170,8 +174,8 @@ impl InternedStruct {
         )
     }
 
-    /// If this is an interned struct, then generate methods to access each field,
-    /// as well as a `new` method.
+    /// If this is an interned struct, then generate methods to access each
+    /// field, as well as a `new` method.
     fn inherent_impl_for_named_fields(&self) -> syn::ItemImpl {
         let db_lt = self.db_lt();
         let vis: &syn::Visibility = self.visibility();

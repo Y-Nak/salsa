@@ -15,25 +15,30 @@
 //! For an interned or entity struct `Foo`, we generate:
 //!
 //! * the actual struct: `struct Foo(Id);`
-//! * constructor function: `impl Foo { fn new(db: &crate::Db, field1: Type1, ..., fieldN: TypeN) -> Self { ... } }
-//! * field accessors: `impl Foo { fn field1(&self) -> Type1 { self.field1.clone() } }`
+//! * constructor function: `impl Foo { fn new(db: &crate::Db, field1: Type1,
+//!   ..., fieldN: TypeN) -> Self { ... } }
+//! * field accessors: `impl Foo { fn field1(&self) -> Type1 {
+//!   self.field1.clone() } }`
 //!     * if the field is `ref`, we generate `fn field1(&self) -> &Type1`
 //!
 //! Only if there are no `ref` fields:
 //!
-//! * the data type: `struct FooData { field1: Type1, ... }` or `enum FooData { ... }`
-//! * data method `impl Foo { fn data(&self, db: &dyn crate::Db) -> FooData { FooData { f: self.f(db), ... } } }`
+//! * the data type: `struct FooData { field1: Type1, ... }` or `enum FooData {
+//!   ... }`
+//! * data method `impl Foo { fn data(&self, db: &dyn crate::Db) -> FooData {
+//!   FooData { f: self.f(db), ... } } }`
 //!     * this could be optimized, particularly for interned fields
+
+use proc_macro2::{Ident, Span, TokenStream};
+use syn::{
+    punctuated::Punctuated, spanned::Spanned, token::Comma, GenericParam, ImplGenerics,
+    TypeGenerics, WhereClause,
+};
 
 use crate::{
     db_lifetime::{self, db_lifetime, default_db_lifetime},
     options::{AllowedOptions, Options},
     xform::ChangeLt,
-};
-use proc_macro2::{Ident, Span, TokenStream};
-use syn::{
-    punctuated::Punctuated, spanned::Spanned, token::Comma, GenericParam, ImplGenerics,
-    TypeGenerics, WhereClause,
 };
 
 pub(crate) struct SalsaStruct<A: AllowedOptions> {
@@ -114,7 +119,8 @@ impl<A: AllowedOptions> SalsaStruct<A> {
         Ok(())
     }
 
-    /// Require that either there are no generics or exactly one lifetime parameter.
+    /// Require that either there are no generics or exactly one lifetime
+    /// parameter.
     pub(crate) fn require_db_lifetime(&self) -> syn::Result<()> {
         db_lifetime::require_db_lifetime(&self.struct_item.generics)
     }
@@ -193,8 +199,8 @@ impl<A: AllowedOptions> SalsaStruct<A> {
     }
 
     /// Extract out the fields and their options:
-    /// If this is a struct, it must use named fields, so we can define field accessors.
-    /// If it is an enum, then this is not necessary.
+    /// If this is a struct, it must use named fields, so we can define field
+    /// accessors. If it is an enum, then this is not necessary.
     fn extract_fields(struct_item: &syn::ItemStruct) -> syn::Result<Vec<SalsaField>> {
         match &struct_item.fields {
             syn::Fields::Named(n) => Ok(n
@@ -297,8 +303,9 @@ impl<A: AllowedOptions> SalsaStruct<A> {
         let ident = self.the_ident();
         let visibility = &self.struct_item.vis;
 
-        // Extract the attributes the user gave, but screen out derive, since we are adding our own,
-        // and the customize attribute that we use for our own purposes.
+        // Extract the attributes the user gave, but screen out derive, since we are
+        // adding our own, and the customize attribute that we use for our own
+        // purposes.
         let attrs: Vec<_> = self
             .struct_item
             .attrs
@@ -333,8 +340,9 @@ impl<A: AllowedOptions> SalsaStruct<A> {
 
             let lifetime = generics.lifetimes().next().unwrap();
 
-            // Extract the attributes the user gave, but screen out derive, since we are adding our own,
-            // and the customize attribute that we use for our own purposes.
+            // Extract the attributes the user gave, but screen out derive, since we are
+            // adding our own, and the customize attribute that we use for our
+            // own purposes.
             let attrs: Vec<_> = self
                 .struct_item
                 .attrs
@@ -347,12 +355,39 @@ impl<A: AllowedOptions> SalsaStruct<A> {
 
             Ok(parse_quote_spanned! { ident.span() =>
                 #(#attrs)*
-                #[derive(Copy, Clone, PartialEq, PartialOrd, Eq, Ord, Hash)]
+                #[derive(Copy, Clone, PartialOrd, Ord)]
                 #visibility struct #ident #generics (
                     std::ptr::NonNull<salsa::#module::ValueStruct < #config_ident >>,
                     std::marker::PhantomData < & #lifetime salsa::#module::ValueStruct < #config_ident > >
                 );
             })
+        }
+    }
+
+    pub(crate) fn the_struct_impl(&self) -> TokenStream {
+        if self.struct_item.generics.params.is_empty() {
+            return parse_quote! {};
+        }
+
+        let ident = self.the_ident();
+        let generics = &self.struct_item.generics;
+        parse_quote! {
+            impl #generics std::cmp::PartialEq for #ident #generics {
+                fn eq(&self, rhs: &Self) -> bool {
+                    unsafe {
+                        salsa::id::AsId::as_id(self.0.as_ref()) == salsa::id::AsId::as_id(rhs.0.as_ref())
+                    }
+                }
+            }
+            impl #generics std::cmp::Eq for #ident #generics {}
+
+            impl #generics std::hash::Hash for #ident #generics {
+                fn hash<H>(&self, state: &mut H) where H: std::hash::Hasher {
+                    unsafe {
+                        salsa::id::AsId::as_id(self.0.as_ref()).hash(state)
+                    }
+                }
+            }
         }
     }
 
@@ -379,10 +414,11 @@ impl<A: AllowedOptions> SalsaStruct<A> {
         }
     }
 
-    /// Returns the lifetime to use for `'db`. This is normally whatever lifetime
-    /// parameter the user put on the struct, but it might be a generated default
-    /// if there is no such parameter. Using the name the user gave is important
-    /// because it may appear in field types and the like.
+    /// Returns the lifetime to use for `'db`. This is normally whatever
+    /// lifetime parameter the user put on the struct, but it might be a
+    /// generated default if there is no such parameter. Using the name the
+    /// user gave is important because it may appear in field types and the
+    /// like.
     pub(crate) fn named_db_lifetime(&self) -> syn::Lifetime {
         match self.the_struct_kind() {
             TheStructKind::Id => self.default_db_lifetime(),
@@ -390,8 +426,9 @@ impl<A: AllowedOptions> SalsaStruct<A> {
         }
     }
 
-    /// Returns lifetime to use for `'db`, substituting `'_` if there is no name required.
-    /// This is convenient in function signatures where `'db` may not be in scope.
+    /// Returns lifetime to use for `'db`, substituting `'_` if there is no name
+    /// required. This is convenient in function signatures where `'db` may
+    /// not be in scope.
     pub(crate) fn maybe_elided_db_lifetime(&self) -> syn::Lifetime {
         match self.the_struct_kind() {
             TheStructKind::Id => syn::Lifetime {
@@ -403,8 +440,8 @@ impl<A: AllowedOptions> SalsaStruct<A> {
     }
 
     /// Normally we try to use whatever lifetime parameter the use gave us
-    /// to represent `'db`; but if they didn't give us one, we need to use a default
-    /// name. We choose `'db`.
+    /// to represent `'db`; but if they didn't give us one, we need to use a
+    /// default name. We choose `'db`.
     fn default_db_lifetime(&self) -> syn::Lifetime {
         default_db_lifetime(self.struct_item.generics.span())
     }
@@ -467,14 +504,16 @@ impl<A: AllowedOptions> SalsaStruct<A> {
         }
     }
 
-    /// Generate `impl salsa::DebugWithDb for Foo`, but only if this is an id struct.
+    /// Generate `impl salsa::DebugWithDb for Foo`, but only if this is an id
+    /// struct.
     pub(crate) fn debug_impl(&self) -> syn::ItemImpl {
         let ident: &Ident = self.the_ident();
         let (impl_generics, type_generics, where_clause) =
             self.struct_item.generics.split_for_impl();
         let ident_string = ident.to_string();
 
-        // `use ::salsa::debug::helper::Fallback` is needed for the fallback to `Debug` impl
+        // `use ::salsa::debug::helper::Fallback` is needed for the fallback to `Debug`
+        // impl
         parse_quote_spanned! {ident.span()=>
             impl #impl_generics ::std::fmt::Debug for #ident #type_generics
             #where_clause
@@ -488,7 +527,8 @@ impl<A: AllowedOptions> SalsaStruct<A> {
         }
     }
 
-    /// Generate `impl salsa::DebugWithDb for Foo`, but only if this is an id struct.
+    /// Generate `impl salsa::DebugWithDb for Foo`, but only if this is an id
+    /// struct.
     pub(crate) fn as_debug_with_db_impl(&self) -> Option<syn::ItemImpl> {
         if self.customizations.contains(&Customization::DebugWithDb) {
             return None;
@@ -501,7 +541,8 @@ impl<A: AllowedOptions> SalsaStruct<A> {
         let db_type = self.db_dyn_ty();
         let ident_string = ident.to_string();
 
-        // `::salsa::debug::helper::SalsaDebug` will use `DebugWithDb` or fallback to `Debug`
+        // `::salsa::debug::helper::SalsaDebug` will use `DebugWithDb` or fallback to
+        // `Debug`
         let fields = self
             .all_fields()
             .map(|field| -> TokenStream {
@@ -523,7 +564,8 @@ impl<A: AllowedOptions> SalsaStruct<A> {
             })
             .collect::<TokenStream>();
 
-        // `use ::salsa::debug::helper::Fallback` is needed for the fallback to `Debug` impl
+        // `use ::salsa::debug::helper::Fallback` is needed for the fallback to `Debug`
+        // impl
         Some(parse_quote_spanned! {ident.span()=>
             impl #impl_generics ::salsa::DebugWithDb<#db_type> for #ident #type_generics
             #where_clause
@@ -675,7 +717,8 @@ impl SalsaField {
         !self.has_ref_attr
     }
 
-    /// Do you potentially backdate the value of this field? (True if it is not a no-eq field)
+    /// Do you potentially backdate the value of this field? (True if it is not
+    /// a no-eq field)
     pub(crate) fn is_backdate_field(&self) -> bool {
         !self.has_no_eq_attr
     }
